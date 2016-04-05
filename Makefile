@@ -1,49 +1,104 @@
-CC			?= gcc
-CXX			?= g++
-LD			?= ld
-DEBUG		?= -ggdb -O0 -march=native
-OUTPUT		:= -MMD -MP
-override CFLAGS		+= $(DEBUG) -x c -Wall -Wextra -pedantic -ansi
-override CFLAGS		+= -Wstrict-overflow -fno-strict-aliasing
-override CXXFLAGS	+= $(DEBUG) -x c++ -Wall -Wextra -pedantic
-override CPPFLAGS	+=
-override LDFLAGS	+= -macosx_version_min 10.11 -arch x86_64
-override LDLIBS		+= -lc -lc++
+# General
+CC			= clang
+LD			= clang
+RM			= rm -rf
+RMDIR		= rmdir 2> /dev/null; true
+INSTALL		= install
+DEBUG		= -ggdb -O0 -march=native -ftrapv
 
-CSRC		:= $(wildcard *.c)
-CXXSRC		:= $(wildcard *.cc)
-COBJ		:= $(CSRC:.c=.o)
-CXXOBJ		:= $(CXXSRC:.cc=.o)
-CDEP		:= $(CSRC:.c=.d)
-CXXDEP		+= $(CXXSRC:.cc=.d)
-EXE			:= foo
--include $(CDEP)
--include $(CXXDEP)
+## CHANGE THIS ##
+TARGET		= foo
+SRCDIR		= src
+OBJDIR		= obj
+BINDIR		= bin
+## CHANGE THIS ##
 
-PREFIX		?= /usr/local
-BINDIR		:= $(PREFIX)/bin
+# CFLAGS, LDFLAGS, CPPFLAGS, PREFIX can be overriden on CLI
+CFLAGS		:= $(DEBUG)
+CPPFLAGS	:=
+LDFLAGS		:=
+PREFIX		:= /usr/local
+TARGET_ARCH :=
 
-RM			= rm
-RMFLAGS		= -f
 
+# Compiler Flags
+ALL_CFLAGS		:= $(CFLAGS)
+ALL_CFLAGS		+= -Wall -Wextra -pedantic -ansi
+ALL_CFLAGS		+= -fno-strict-aliasing
+ALL_CFLAGS		+= -Wuninitialized -Winit-self -Wfloat-equal
+ALL_CFLAGS		+= -Wundef -Wshadow -Wc++-compat -Wcast-qual -Wcast-align
+ALL_CFLAGS		+= -Wconversion -Wsign-conversion -Wjump-misses-init
+ALL_CFLAGS		+= -Wno-multichar -Wpacked -Wstrict-overflow -Wvla
+ALL_CFLAGS		+= -Wformat -Wno-format-zero-length -Wstrict-prototypes
+
+
+# Preprocessor Flags
+ALL_CPPFLAGS	:= $(CPPFLAGS)
+ALL_LDFLAGS		:= $(LDFLAGS)
+ALL_LDLIBS		:= -lc
+
+# Source, Binaries, Dependencies
+SRC			:= $(shell find $(SRCDIR) -type f -name '*.c')
+OBJ			:= $(patsubst $(SRCDIR)/%,$(OBJDIR)/%,$(SRC:.c=.o))
+DEP			:= $(OBJ:.o=.d)
+BIN			:= $(TARGET)
+-include $(DEP)
+
+
+# Verbosity Control, ala automake
+V 			= 0
+
+# Verbosity for CC
+REAL_CC 	:= $(CC)
+CC_0 		= @echo "CC $<"; $(REAL_CC)
+CC_1 		= $(REAL_CC)
+CC 			= $(CC_$(V))
+
+# Verbosity for LD
+REAL_LD 	:= $(LD)
+LD_0 		= @echo "LD $@"; $(REAL_LD)
+LD_1 		= $(REAL_LD)
+LD 			= $(LD_$(V))
+
+# Verbosity for RM
+REAL_RM 	:= $(RM)
+RM_0 		= @echo "Cleaning..."; $(REAL_RM)
+RM_1 		= $(REAL_RM)
+RM 			= $(RM_$(V))
+
+# Verbosity for RMDIR
+REAL_RMDIR 	:= $(RMDIR)
+RMDIR_0 	= @echo ""; $(REAL_RMDIR)
+RMDIR_1 	= $(REAL_RMDIR)
+RMDIR 		= $(RMDIR_$(V))
+
+
+
+# Build Rules
 .PHONY: clean
 .DEFAULT_GOAL := all
 
-all: $(EXE)
+all: setup $(BIN)
+setup: dir
+remake: clean all
 
-%.o: %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< $(OUTPUT) -o $@
-
-%.o: %.cc
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< $(OUTPUT) -o $@
-
-$(EXE): $(COBJ) $(CXXOBJ)
-	$(LD) $(LDFLAGS) $(LDLIBS) -o $(EXE) $^
+dir:
+	@mkdir -p $(OBJDIR)
+	@mkdir -p $(BINDIR)
 
 
-install: $(EXE)
-	install -d $(BINDIR)
-	install $(BIN) $(BINDIR)
+$(BIN): $(OBJ)
+	$(LD) $(LDFLAGS) $^ $(LDLIBS) -o $(BINDIR)/$@
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -MMD -MP -o $@ $<
+
+
+install: $(BIN)
+	$(INSTALL) -d $(PREFIX)/bin
+	$(INSTALL) $(BIN) $(PREFIX)/bin
 
 clean:
-	$(RM) $(RMFLAGS) $(COBJ) $(CXXOBJ) $(CDEP) $(CXXDEP) $(EXE)
+	$(RM) $(OBJ) $(DEP) $(BINDIR)/$(BIN)
+	$(RMDIR) $(OBJDIR) $(BINDIR)
+
