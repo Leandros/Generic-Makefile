@@ -2,7 +2,7 @@
 CC			= clang
 LD			= clang
 RM			= rm -rf
-RMDIR		= rmdir 2> /dev/null; true
+RMDIR		= rmdir
 INSTALL		= install
 DEBUG		= -ggdb -O0 -march=native -ftrapv
 
@@ -30,6 +30,7 @@ ALL_CFLAGS		+= -Wundef -Wshadow -Wc++-compat -Wcast-qual -Wcast-align
 ALL_CFLAGS		+= -Wconversion -Wsign-conversion -Wjump-misses-init
 ALL_CFLAGS		+= -Wno-multichar -Wpacked -Wstrict-overflow -Wvla
 ALL_CFLAGS		+= -Wformat -Wno-format-zero-length -Wstrict-prototypes
+ALL_CFLAGS		+= -Wno-unknown-warning-option
 
 
 # Preprocessor Flags
@@ -41,7 +42,7 @@ ALL_LDLIBS		:= -lc
 SRC			:= $(shell find $(SRCDIR) -type f -name '*.c')
 OBJ			:= $(patsubst $(SRCDIR)/%,$(OBJDIR)/%,$(SRC:.c=.o))
 DEP			:= $(OBJ:.o=.d)
-BIN			:= $(TARGET)
+BIN			:= $(BINDIR)/$(TARGET)
 -include $(DEP)
 
 
@@ -68,7 +69,7 @@ RM 			= $(RM_$(V))
 
 # Verbosity for RMDIR
 REAL_RMDIR 	:= $(RMDIR)
-RMDIR_0 	= @echo ""; $(REAL_RMDIR)
+RMDIR_0 	= @$(REAL_RMDIR)
 RMDIR_1 	= $(REAL_RMDIR)
 RMDIR 		= $(RMDIR_$(V))
 
@@ -88,10 +89,10 @@ dir:
 
 
 $(BIN): $(OBJ)
-	$(LD) $(LDFLAGS) $^ $(LDLIBS) -o $(BINDIR)/$@
+	$(LD) $(ALL_LDFLAGS) $^ $(ALL_LDLIBS) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -MMD -MP -o $@ $<
+	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) -c -MMD -MP -o $@ $<
 
 
 install: $(BIN)
@@ -99,6 +100,6 @@ install: $(BIN)
 	$(INSTALL) $(BIN) $(PREFIX)/bin
 
 clean:
-	$(RM) $(OBJ) $(DEP) $(BINDIR)/$(BIN)
-	$(RMDIR) $(OBJDIR) $(BINDIR)
+	$(RM) $(OBJ) $(DEP) $(BIN)
+	$(RMDIR) $(OBJDIR) $(BINDIR) 2> /dev/null; true
 
