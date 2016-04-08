@@ -32,11 +32,13 @@ ALL_CFLAGS		+= -Wno-multichar -Wpacked -Wstrict-overflow -Wvla
 ALL_CFLAGS		+= -Wformat -Wno-format-zero-length -Wstrict-prototypes
 ALL_CFLAGS		+= -Wno-unknown-warning-option
 
-
 # Preprocessor Flags
 ALL_CPPFLAGS	:= $(CPPFLAGS)
+
+# Linker Flags
 ALL_LDFLAGS		:= $(LDFLAGS)
 ALL_LDLIBS		:= -lc
+
 
 # Source, Binaries, Dependencies
 SRC			:= $(shell find $(SRCDIR) -type f -name '*.c')
