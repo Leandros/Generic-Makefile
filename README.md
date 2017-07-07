@@ -26,7 +26,7 @@ You can also do the **optional** changes below if you desire:
 License
 =======
 
-BSD 2-clause
+Dual-Licensed under Public Domain & MIT
 
-Copyright (c) 2016, Arvid Gerstmann
+Copyright (c) 2017, Arvid Gerstmann
 All rights reserved.
